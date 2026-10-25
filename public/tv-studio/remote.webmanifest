@@ -1,0 +1,1 @@
+{"name":"SAVRDH Smart Remote","short_name":"SAVRDH Remote","start_url":"./remote.html","scope":"./","display":"standalone","background_color":"#071922","theme_color":"#071922","icons":[{"src":"remote-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}

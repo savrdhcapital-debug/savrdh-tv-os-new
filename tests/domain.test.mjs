@@ -1,0 +1,42 @@
+import {createRequire} from 'node:module';import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';import path from 'node:path';import {tmpdir} from 'node:os';import assert from 'node:assert/strict';
+const project=path.resolve(new URL('..',import.meta.url).pathname);const require=createRequire(project+'/package.json');const ts=require('typescript');const temporary=await mkdtemp(path.join(tmpdir(),'savrdh-domain-'));process.env.TV_CONTROL_DATA_DIR=path.join(temporary,'data');
+try{
+ for(const name of ['operations-schema','operations-store','remote-service','appearance-schema','tv-control-store','appearance-service']){let source=await readFile(project+'/lib/'+name+'.ts','utf8');if(name==='appearance-schema')source=source.replace("import presets from '@/public/tv-studio/appearance-presets.json';",'const presets='+await readFile(project+'/public/tv-studio/appearance-presets.json','utf8')+';');const output=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText.replace(/import 'server-only';/g,'').replace(/from '\.\/(operations-schema|operations-store|appearance-schema|tv-control-store)'/g,"from './$1.mjs'");await writeFile(path.join(temporary,name+'.mjs'),output);}
+ const store=await import(path.join(temporary,'operations-store.mjs'));const {remoteAction}=await import(path.join(temporary,'remote-service.mjs'));
+ const create=(slug,data)=>store.mutateOperations(s=>store.saveRecord(s,'test-admin',slug,data));
+ const action=async(slug,id,verb)=>{const state=await store.readOperations();const row=store.rows(state,slug).find(r=>r.id===id);return store.mutateOperations(s=>store.recordAction(s,'test-admin',slug,id,verb,row.version));};
+ const family=(await create('families',{name:'Integration Test Family',email:'test@example.invalid',status:'active'})).record;
+ const plan=(await create('plans',{name:'Family Monthly',priceRupees:99,months:1,deviceLimit:1,status:'active'})).record;
+ const subscription=(await create('subscriptions',{familyId:family.id,planId:plan.id,notes:'Test only'})).record;
+ await assert.rejects(action('subscriptions',subscription.id,'activate'),/verified/);
+ const pay=(await create('payments',{familyId:family.id,subscriptionId:subscription.id,amountRupees:99,reference:'TEST-UTR-1',method:'UPI',paidAt:'2026-10-25'})).record;
+ await assert.rejects(create('payments',{familyId:family.id,subscriptionId:subscription.id,amountRupees:99,reference:'test-utr-1',method:'UPI',paidAt:'2026-10-25'}),/already/);
+ await action('payments',pay.id,'verify');await action('subscriptions',subscription.id,'activate');
+ await assert.rejects(action('subscriptions',subscription.id,'renew'),/unused/);
+ const device=await create('devices',{familyId:family.id,name:'Test TV',kind:'android_tv'});assert.equal('enrollmentHash'in device.record,false);
+ await assert.rejects(create('devices',{familyId:family.id,name:'Extra TV',kind:'android_tv'}),/limit/);
+ const enrolled=await remoteAction('enroll',{code:device.enrollmentCode,model:'Unit test TV'});assert.equal(enrolled.token.length,64);
+ await assert.rejects(remoteAction('enroll',{code:device.enrollmentCode}),/invalid/);
+ await create('parental-controls',{familyId:family.id,name:'Blocked test app',packageName:'com.example.blocked',status:'active'});
+ const pair=await remoteAction('pair/start',{token:enrolled.token});const phone=await remoteAction('pair/request',{code:pair.code,name:'Test phone'});
+ assert.equal((await remoteAction('pair/claim',{token:phone.token})).status,'pending');
+ await assert.rejects(remoteAction('command',{token:phone.token,key:'ArrowRight'}),/Approve/);
+ await remoteAction('pair/approve',{token:enrolled.token,pairId:phone.pairId,allow:true});
+ const poll=await remoteAction('device/poll',{token:enrolled.token,ack:0,foreground:true,launcherSeconds:2});assert.equal(poll.entitled,true);assert.deepEqual(poll.blockedPackages,['com.example.blocked']);
+ await remoteAction('command',{token:phone.token,key:'ArrowRight'});
+ const next=await remoteAction('device/poll',{token:enrolled.token,ack:0,foreground:true});assert.equal(next.commands.length,1);assert.equal(next.commands[0].key,'ArrowRight');
+ const acked=await remoteAction('device/poll',{token:enrolled.token,ack:next.commands[0].seq,foreground:true});assert.equal(acked.commands.length,0);
+ await assert.rejects(remoteAction('command',{token:phone.token,key:'eval arbitrary code'}),/Unsupported/);
+ await action('payments',pay.id,'reverse');await assert.rejects(remoteAction('command',{token:phone.token,key:'Enter'}),/inactive/);
+ await action('devices',device.record.id,'revoke');await assert.rejects(remoteAction('device/poll',{token:enrolled.token,ack:0}),/revoked/);await assert.rejects(remoteAction('pair/claim',{token:phone.token}),/revoked/);
+ const state=await store.readOperations();assert.ok(state.audit.length>=8);assert.equal(state.collections['screen-time'][0].seconds,2);
+ await assert.rejects(create('families',{...family,name:'Stale edit',version:99}),/changed/);
+ const onDisk=await readFile(path.join(process.env.TV_CONTROL_DATA_DIR,'operations.json'),'utf8');assert.ok(!onDisk.includes(enrolled.token));assert.ok(!onDisk.includes(phone.token));assert.ok(!onDisk.includes(device.enrollmentCode));
+ const {fromPreset,parseAppearance}=await import(path.join(temporary,'appearance-schema.mjs'));const {updateAppearance}=await import(path.join(temporary,'appearance-service.mjs'));const themeStore=await import(path.join(temporary,'tv-control-store.mjs'));
+ const custom={...fromPreset('hacker'),accent:'#33ff66',hero:'Custom saved headline'};
+ await themeStore.mutateTVState(s=>updateAppearance(s,{scope:'all',tokens:custom,publish:false},'test-admin'));assert.equal((await themeStore.readTVState()).appearance,undefined);
+ await themeStore.mutateTVState(s=>updateAppearance(s,{scope:'all',tokens:custom,publish:true},'test-admin'));let published=await themeStore.readTVState();for(const scope of ['tv','mobile','parent','admin'])assert.equal(published.appearance[scope].accent,'#33ff66');assert.equal(published.theme,'hacker');
+ await themeStore.mutateTVState(s=>updateAppearance(s,{scope:'tv',tokens:fromPreset('apple-glass'),publish:true},'test-admin'));published=await themeStore.readTVState();assert.equal(published.appearance.tv.theme,'apple-glass');assert.equal(published.appearance.mobile.theme,'hacker');assert.equal(published.appearanceHistory.length,2);assert.throws(()=>parseAppearance({...custom,accent:'url(https://evil.invalid)'}),/colors/);
+ console.log('PASS: unified appearance draft isolation, all-surface publishing, scope isolation, history persistence and color validation.');
+ console.log('PASS: verified-payment activation; duplicate references; renewals; device limits; one-time enrollment; TV-approved pairing; command authorization and acknowledgments; package rules; telemetry; reversal suspension; revocation; stale-update protection; token hashing; audit persistence.');
+}finally{await rm(temporary,{recursive:true,force:true});}

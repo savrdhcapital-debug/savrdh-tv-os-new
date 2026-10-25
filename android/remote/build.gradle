@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.savrdh.remote'
+    compileSdk 35
+    defaultConfig {applicationId 'com.savrdh.remote';minSdk 26;targetSdk 35;versionCode Integer.parseInt(System.getenv('VERSION_CODE') ?: '1');versionName System.getenv('VERSION_NAME') ?: '1.0.0'}
+    signingConfigs {if(System.getenv('KEYSTORE_PATH')) {production {storeFile file(System.getenv('KEYSTORE_PATH'));storePassword System.getenv('KEYSTORE_PASSWORD');keyAlias System.getenv('KEY_ALIAS');keyPassword System.getenv('KEY_PASSWORD')}}}
+    buildTypes {release {minifyEnabled false;if(System.getenv('KEYSTORE_PATH'))signingConfig signingConfigs.production}}
+    compileOptions {sourceCompatibility JavaVersion.VERSION_17;targetCompatibility JavaVersion.VERSION_17}
+    sourceSets.main.java.srcDir('../shared/src/main/java')
+}
+tasks.register('syncRemoteAssets',Copy){from '../../public/tv-studio';into layout.buildDirectory.dir('generated/remoteAssets');include 'remote.html','remote.js','remote.css','remote-icon.svg','remote.webmanifest','appearance-presets.js','appearance-runtime.js','appearance-effects.css'}
+android.sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/remoteAssets'))
+tasks.named('preBuild').configure{dependsOn 'syncRemoteAssets'}

@@ -1,0 +1,13 @@
+import Link from 'next/link';
+import TVControlFrame from './TVControlFrame';
+
+export default function TVExperienceStudio({initialTab = 'studio'}: {initialTab?: 'studio' | 'releases'}) {
+  return <main className="page">
+    <div className="heading"><div>
+      <div className="eyebrow">SUPER ADMIN / ANDROID TV</div>
+      <h1>{initialTab === 'releases' ? 'App & OS Updates' : 'TV Experience Studio'}</h1>
+      <p>Four TV themes, remote simulator and application releases in your existing control center.</p>
+    </div><span className="demo-tag">Same interface as Android app</span></div>
+    <Link className="back-link" href="/modules/appearance">Edit global colors, fonts, logo and background motion in Appearance Studio →</Link><TVControlFrame tab={initialTab}/>
+  </main>;
+}

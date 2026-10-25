@@ -1,0 +1,10 @@
+const $=s=>document.querySelector(s),native=window.Android;
+function notice(text){$('#notice').textContent=text;}
+function status(){if(!native){$('#network').textContent='Browser setup preview';notice('This is the first-installation preview. Wi-Fi, enrollment and Home selection run in the native TV app.');return;}try{const state=JSON.parse(native.getSetupState());$('#network').textContent=state.connected?'● Network connected':'No network connection';$('#server').value=state.server||'';if(state.enrolled)notice('TV enrolled. Pair a phone or finish setup.');}catch{notice('Unable to read setup state');}}
+$('#wifi').onclick=()=>native?native.openWifi():notice('On Android TV this opens system Wi-Fi settings.');$('#checkNetwork').onclick=status;
+$('#enroll').onclick=()=>{if(!native)return notice('Enrollment is available in the Android TV app.');if(!/^https:\/\/[^\s]+$/.test($('#server').value))return notice('Enter your HTTPS super admin server');native.enrollDevice($('#server').value,$('#code').value);notice('Connecting TV…');};
+window.setupResult=result=>{if(result.error)return notice(result.error);notice('TV enrolled successfully. You can now pair your phone.');$('#code').value='';};
+window.pairingCode=result=>{if(result.error)return notice(result.error);$('#pin').textContent=result.code;notice('Code expires in five minutes. Approve the phone request on this TV.');};
+$('#pair').onclick=()=>native?native.startPairing():notice('Native TV shows a time-limited pairing code after enrollment.');$('#homeSettings').onclick=()=>native?native.openHomeSettings():notice('Native TV opens Android default Home settings.');$('#finish').onclick=()=>native?native.finishSetup():notice('Preview complete. The native app now opens its launcher.');status();
+
+if(native){try{const tokens=JSON.parse(native.getAppearance());if(tokens.theme){window.SavrdhAppearance?.apply(document.body,tokens);window.SavrdhAppearance?.ambient(document.body);document.body.classList.add('custom-appearance');}}catch{}}
