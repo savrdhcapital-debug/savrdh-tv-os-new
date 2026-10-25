@@ -3,9 +3,10 @@ import {useEffect,useState} from 'react';
 import {readModule,createAdminRecord,updateAdminRecord,deleteAdminRecord} from '@/lib/live-data';
 import {realModules} from '@/lib/real-module-map';
 import {moduleConfigs} from '@/lib/module-configs';
+import {browserClient} from '@/lib/supabase';
 export default function LiveModule({slug}:{slug:string}){
- const [editing,setEditing]=useState('');const [recordStatus,setRecordStatus]=useState('draft');const [rows,setRows]=useState<Record<string,unknown>[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[name,setName]=useState('');
- async function load(){setLoading(true);try{setRows(await readModule(slug));setError('')}catch(e){setError(String(e))}finally{setLoading(false)}}
+ const [demoRows,setDemoRows]=useState<{id:string;label:string;module_slug:string;details:Record<string,unknown>}[]>([]);const [editing,setEditing]=useState('');const [recordStatus,setRecordStatus]=useState('draft');const [rows,setRows]=useState<Record<string,unknown>[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[name,setName]=useState('');
+ async function load(){setLoading(true);try{setRows(await readModule(slug));const {data,error}=await browserClient().from('tvos_demo_records').select('id,label,module_slug,details').eq('module_slug',slug).limit(100);if(error)throw error;setDemoRows(data||[]);setError('')}catch(e){setError(String(e))}finally{setLoading(false)}}
  useEffect(()=>{void load()},[slug]);
  async function save(){try{if(editing)await updateAdminRecord(slug,editing,{name,status:recordStatus});else await createAdminRecord(slug,name,recordStatus);setName('');setEditing('');await load()}catch(e){setError(String(e))}}
  async function remove(id:string){if(!confirm('Delete this administrative record?'))return;try{await deleteAdminRecord(slug,id);await load()}catch(e){setError(String(e))}}
