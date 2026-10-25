@@ -47,10 +47,11 @@ if(url.pathname.startsWith('/api/admin/')){
  await mutate(s=>{s.theme=b.theme;s.revision++;s.audit.unshift({action:'theme.publish',theme:b.theme,at:new Date().toISOString()});});return send(res,200,{ok:true});
  }
  if(url.pathname==='/api/admin/releases'){
- if(!['internal','beta','stable'].includes(b.channel)||!Number.isSafeInteger(b.versionCode)||b.versionCode<1||typeof b.versionName!=='string'||!/^\d+\.\d+\.\d+$/.test(b.versionName)||!/^https:\/\/[^\s]+\.apk(?:\?[^\s]*)?$/.test(b.apkUrl||'')||!/^[a-f0-9]{64}$/i.test(b.sha256||'')||typeof b.notes!=='string'||b.notes.length>4000)return send(res,400,{error:'Valid version, channel, HTTPS APK URL and SHA-256 are required'});
+ if(!['internal','beta','stable'].includes(b.channel)||!Number.isSafeInteger(b.versionCode)||b.versionCode<1||b.versionCode>2147483647||typeof b.versionName!=='string'||!/^\d+\.\d+\.\d+$/.test(b.versionName)||!/^https:\/\/[^\s]+\.apk(?:\?[^\s]*)?$/.test(b.apkUrl||'')||!/^[a-f0-9]{64}$/i.test(b.sha256||'')||typeof b.notes!=='string'||b.notes.length>4000)return send(res,400,{error:'Valid version, channel, HTTPS APK URL and SHA-256 are required'});
  await mutate(s=>{if(s.releases.some(r=>r.channel===b.channel&&r.versionCode>=b.versionCode))throw Error('Version code must increase within the channel');s.releases.unshift({versionName:b.versionName,versionCode:b.versionCode,channel:b.channel,apkUrl:b.apkUrl,sha256:b.sha256.toLowerCase(),notes:b.notes,publishedAt:new Date().toISOString()});s.audit.unshift({action:'release.publish',version:b.versionName,channel:b.channel,at:new Date().toISOString()});});return send(res,200,{ok:true});
  }
  if(url.pathname==='/api/admin/build'){
+ if(!Number.isSafeInteger(b.versionCode)||b.versionCode<1||b.versionCode>2147483647||typeof b.versionName!=='string'||!/^\d+\.\d+\.\d+$/.test(b.versionName))return send(res,400,{error:'Valid semantic version and Android version code required'});
  if(!process.env.GITHUB_TOKEN)return send(res,503,{error:'Configure server-only GITHUB_TOKEN to request APK builds'});
  const repo=process.env.GITHUB_REPOSITORY||'savrdhtechnology-cloud/SAVRDH-TV-OS';
  const response=await fetch(`https://api.github.com/repos/${repo}/actions/workflows/android.yml/dispatches`,{method:'POST',headers:{Authorization:`Bearer ${process.env.GITHUB_TOKEN}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({ref:process.env.GITHUB_REF||'main',inputs:{version_name:b.versionName,version_code:String(b.versionCode),config_url:process.env.PUBLIC_URL||''}})});
