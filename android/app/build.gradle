@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+def serverUrl = System.getenv('CONFIG_URL') ?: ''
+if (serverUrl && !(serverUrl ==~ /https:\/\/[A-Za-z0-9.:-]+(?:\/[A-Za-z0-9_\/-]*)?/)) throw new GradleException('CONFIG_URL must be an HTTPS server URL without query parameters')
+android {
+    namespace 'com.savrdh.tvos'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.savrdh.tvos'
+        minSdk 26
+        targetSdk 35
+        versionCode Integer.parseInt(System.getenv('VERSION_CODE') ?: '1')
+        versionName System.getenv('VERSION_NAME') ?: '1.0.0'
+        buildConfigField 'String', 'CONFIG_URL', '"' + serverUrl + '"'
+    }
+    buildFeatures { buildConfig true }
+    signingConfigs {
+        if (System.getenv('KEYSTORE_PATH')) {
+            production {
+                storeFile file(System.getenv('KEYSTORE_PATH'))
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('KEYSTORE_PATH')) signingConfig signingConfigs.production
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'androidx.core:core:1.15.0' }
+tasks.register('syncTvAssets', Copy) { from '../../web'; into layout.buildDirectory.dir('generated/tvAssets'); include 'tv.html', 'tv.css', 'tv.js', 'assets/**' }
+android.sourceSets.main.assets.srcDir(layout.buildDirectory.dir('generated/tvAssets'))
+tasks.named('preBuild').configure { dependsOn 'syncTvAssets' }

@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <uses-feature android:name="android.software.leanback" android:required="true"/>
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+    <queries>
+        <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent>
+        <package android:name="com.google.android.youtube.tv"/><package android:name="com.netflix.ninja"/><package android:name="com.amazon.amazonvideo.livingroom"/><package android:name="com.google.android.tv"/>
+    </queries>
+    <application android:label="SAVRDH TV OS" android:theme="@android:style/Theme.Material.NoActionBar" android:banner="@drawable/tv_banner" android:icon="@drawable/tv_icon" android:usesCleartextTraffic="false" android:allowBackup="false">
+        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="landscape">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent-filter>
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.HOME"/><category android:name="android.intent.category.DEFAULT"/></intent-filter>
+        </activity>
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider>
+    </application>
+</manifest>

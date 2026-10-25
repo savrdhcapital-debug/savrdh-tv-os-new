@@ -1,0 +1,31 @@
+import {test,after} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+process.env.NODE_ENV='test';process.env.ADMIN_PASSWORD='test-password-long-and-local';process.env.DATA_DIR=await mkdtemp(path.join(tmpdir(),'savrdh-test-'));
+const {server}=await import('../server.mjs');await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+after(async()=>{await new Promise(r=>server.close(r));await rm(process.env.DATA_DIR,{recursive:true,force:true});});
+const post=(route,data,cookie='',origin=base)=>fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json',Origin:origin,Cookie:cookie},body:JSON.stringify(data)});
+test('admin writes require auth and same origin; theme and release round trip',async()=>{
+ assert.equal((await post('/api/admin/theme',{theme:'gold'})).status,401);
+ assert.equal((await post('/api/login',{password:process.env.ADMIN_PASSWORD},'','https://evil.example')).status,403);
+ assert.equal((await post('/api/login',{password:'wrong'})).status,401);
+ const login=await post('/api/login',{password:process.env.ADMIN_PASSWORD});assert.equal(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0];
+ assert.equal((await post('/api/admin/theme',{theme:'unknown'},cookie)).status,400);
+ assert.equal((await post('/api/admin/theme',{theme:'gold'},cookie)).status,200);
+ assert.equal((await fetch(base+'/api/config').then(r=>r.json())).theme,'gold');
+ const release={versionName:'1.0.1',versionCode:2,channel:'stable',apkUrl:'https://example.com/app.apk',sha256:'a'.repeat(64),notes:'Verified release'};
+ assert.equal((await post('/api/admin/releases',{...release,apkUrl:'http://example.com/app.apk'},cookie)).status,400);
+ assert.equal((await post('/api/admin/releases',release,cookie)).status,200);
+ assert.equal((await post('/api/admin/releases',release,cookie)).status,400);
+ assert.equal((await fetch(base+'/api/releases/latest?channel=stable').then(r=>r.json())).versionCode,2);
+ assert.equal(await fetch(base+'/api/releases/latest?channel=beta').then(r=>r.json()),null);
+ const state=await fetch(base+'/api/admin/state',{headers:{Cookie:cookie}}).then(r=>r.json());assert.equal(state.audit.length,2);
+ assert.equal((await post('/api/admin/build',{versionName:'1.0.1',versionCode:2},cookie)).status,503);
+ await post('/api/admin/logout',{},cookie);assert.equal((await fetch(base+'/api/admin/state',{headers:{Cookie:cookie}})).status,401);
+});
+test('simulator and all four theme assets are served; data stays private',async()=>{
+ for(const route of ['/','/tv.html','/tv.js','/tv.css',...['neon','glass','family','gold'].map(t=>`/assets/${t}.png`)])assert.equal((await fetch(base+route)).status,200,route);
+ assert.equal((await fetch(base+'/data/state.json')).status,404);assert.equal((await fetch(base+'/.env')).status,404);
+});
