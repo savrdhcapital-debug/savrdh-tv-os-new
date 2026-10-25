@@ -1,0 +1,37 @@
+-- SAVRDH TV OS initial schema. Applied to Supabase project ldfbrwcdebwoypthdqko.
+create extension if not exists pgcrypto;
+create table public.families(id uuid primary key default gen_random_uuid(),name text not null check(length(name) between 1 and 120),created_by uuid not null references auth.users(id),created_at timestamptz not null default now());
+create table public.family_members(family_id uuid not null references public.families(id) on delete cascade,user_id uuid not null references auth.users(id) on delete cascade,role text not null check(role in ('owner','parent','viewer')),joined_at timestamptz not null default now(),primary key(family_id,user_id));
+create table public.child_profiles(id uuid primary key default gen_random_uuid(),family_id uuid not null references public.families(id) on delete cascade,display_name text not null check(length(display_name) between 1 and 60),avatar_key text,created_at timestamptz not null default now(),unique(id,family_id));
+create table public.devices(id uuid primary key default gen_random_uuid(),family_id uuid not null references public.families(id) on delete cascade,child_profile_id uuid,name text not null,kind text not null check(kind in ('android_tv','google_tv','android_phone','android_tablet','ios','other')),model text,os_version text,app_version text,pairing_status text not null default 'pending' check(pairing_status in ('pending','active','revoked')),last_seen_at timestamptz,created_at timestamptz not null default now(),unique(id,family_id),foreign key(child_profile_id,family_id) references public.child_profiles(id,family_id));
+create table public.parental_policies(id uuid primary key default gen_random_uuid(),family_id uuid not null references public.families(id) on delete cascade,child_profile_id uuid not null,daily_limit_minutes int not null default 120 check(daily_limit_minutes between 0 and 1440),bedtime_start time,bedtime_end time,timezone text not null default 'Asia/Kolkata',enabled boolean not null default true,updated_at timestamptz not null default now(),unique(child_profile_id),foreign key(child_profile_id,family_id) references public.child_profiles(id,family_id));
+create table public.app_rules(id uuid primary key default gen_random_uuid(),family_id uuid not null references public.families(id) on delete cascade,child_profile_id uuid not null,package_name text not null check(length(package_name) between 1 and 255),rule text not null check(rule in ('allow','block','limit')),daily_limit_minutes int check(daily_limit_minutes between 0 and 1440),created_at timestamptz not null default now(),unique(child_profile_id,package_name),foreign key(child_profile_id,family_id) references public.child_profiles(id,family_id),check(rule <> 'limit' or daily_limit_minutes is not null));
+create table public.screen_time_daily(family_id uuid not null references public.families(id) on delete cascade,device_id uuid not null,usage_date date not null,minutes_used int not null default 0 check(minutes_used between 0 and 1440),updated_at timestamptz not null default now(),primary key(device_id,usage_date),foreign key(device_id,family_id) references public.devices(id,family_id));
+create table public.subscription_plans(id uuid primary key default gen_random_uuid(),code text not null unique,label text not null,price_inr_paise int not null default 0 check(price_inr_paise>=0),interval text not null check(interval in ('free','monthly','yearly')),active boolean not null default true);
+create table public.family_subscriptions(id uuid primary key default gen_random_uuid(),family_id uuid not null references public.families(id) on delete cascade,plan_id uuid not null references public.subscription_plans(id),status text not null default 'trialing' check(status in ('trialing','active','past_due','canceled','expired')),period_ends_at timestamptz,created_at timestamptz not null default now());
+create table public.app_releases(id uuid primary key default gen_random_uuid(),platform text not null check(platform in ('android_tv','android_mobile','ios','web')),channel text not null check(channel in ('internal','beta','stable')),version_name text not null,version_code bigint not null check(version_code>0),apk_url text,sha256 text,release_notes text,published boolean not null default false,created_at timestamptz not null default now(),unique(platform,channel,version_code),check(sha256 is null or sha256 ~ '^[0-9a-fA-F]{64}$'));
+create table public.device_update_events(id uuid primary key default gen_random_uuid(),family_id uuid not null references public.families(id) on delete cascade,device_id uuid not null,release_id uuid not null references public.app_releases(id),status text not null check(status in ('available','downloaded','installed','failed')),happened_at timestamptz not null default now(),foreign key(device_id,family_id) references public.devices(id,family_id));
+create table public.admin_audit_logs(id uuid primary key default gen_random_uuid(),actor_id uuid references auth.users(id),action text not null,entity text not null,entity_id uuid,created_at timestamptz not null default now());
+create index idx_members_user on public.family_members(user_id);
+create index idx_devices_family on public.devices(family_id);
+create index idx_rules_family on public.app_rules(family_id);
+create index idx_usage_family_date on public.screen_time_daily(family_id,usage_date);
+create index idx_sub_family on public.family_subscriptions(family_id);
+create index idx_updates_device on public.device_update_events(device_id);
+create index idx_audit_date on public.admin_audit_logs(created_at desc);
+alter table public.families enable row level security;
+alter table public.family_members enable row level security;
+alter table public.child_profiles enable row level security;
+alter table public.devices enable row level security;
+alter table public.parental_policies enable row level security;
+alter table public.app_rules enable row level security;
+alter table public.screen_time_daily enable row level security;
+alter table public.subscription_plans enable row level security;
+alter table public.family_subscriptions enable row level security;
+alter table public.app_releases enable row level security;
+alter table public.device_update_events enable row level security;
+alter table public.admin_audit_logs enable row level security;
+create policy "members read own membership" on public.family_members for select to authenticated using(user_id=(select auth.uid()));
+create policy "families read for members" on public.families for select to authenticated using(exists(select 1 from public.family_members fm where fm.family_id=id and fm.user_id=(select auth.uid())));
+create policy "active plans visible" on public.subscription_plans for select to authenticated using(active=true);
+-- No direct writes by clients. Pairing, policy changes and billing require verified server routes.
