@@ -17,3 +17,15 @@ export async function createAdminRecord(slug:string,name:string,status='draft'){
  if(error)throw error;
  return data;
 }
+
+export async function updateAdminRecord(slug:string,id:string,changes:{name:string;status:string}){
+ if(realModules[slug]!=='tvos_module_records')throw new Error('Read-only module');
+ const {data,error}=await browserClient().from('tvos_module_records').update(changes).eq('id',id).eq('module_slug',slug).select().single();
+ if(error)throw error;
+ return data;
+}
+export async function deleteAdminRecord(slug:string,id:string){
+ if(realModules[slug]!=='tvos_module_records')throw new Error('Read-only module');
+ const {error}=await browserClient().from('tvos_module_records').delete().eq('id',id).eq('module_slug',slug);
+ if(error)throw error;
+}
