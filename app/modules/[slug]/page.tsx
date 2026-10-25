@@ -1,0 +1,2 @@
+import AdminShell from '@/components/AdminShell';import Dashboard from '@/components/Dashboard';import ModulePage from '@/components/ModulePage';import {modules} from '@/lib/modules';import {notFound} from 'next/navigation';
+export default async function Page({params}:{params:Promise<{slug:string}>}){const {slug}=await params;if(!modules.some(x=>x[0]===slug))notFound();return <AdminShell>{slug==='dashboard'?<Dashboard/>:<ModulePage slug={slug}/>}</AdminShell>}
