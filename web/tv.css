@@ -8,3 +8,4 @@ html,body{overflow:hidden}#screen{height:100vh;overflow-y:auto;scrollbar-width:n
 .glass .hero{height:22vw;min-height:0}.family .hero{height:22vw;min-height:0}.family .app{min-height:8vw;padding:.9vw 1.4vw}.family .watch-card{min-height:5vw;padding:.7vw}.family .watch-card .progress{margin-top:.8vw}
 .gold .hero{height:22vw;min-height:0}.gold h1{font-size:4.2vw}.gold .intro{max-width:35vw}.gold .intro br{display:none}.gold .premium{margin:.8vw 0;gap:1vw}.gold .premium article{height:10vw;min-height:0;padding:.8vw 1.6vw}.gold .premium h2{font-size:1.65vw;margin:.3vw 0}.gold .premium p{margin:.4vw 0}.gold .premium .eyebrow{font-size:.8vw}.gold .premium button{font-size:.8vw;padding:.35vw 1.2vw}.gold .section-heading{margin:1vw 0 .4vw}.gold .app{min-height:7.6vw}
 }
+.family .hero-art{background-position:center,right top}
