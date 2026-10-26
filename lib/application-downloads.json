@@ -1,0 +1,20 @@
+[
+  {
+    "name": "SAVRDH TV OS",
+    "description": "Android TV launcher with ten themes, first-install setup and phone pairing.",
+    "url": "/downloads/SAVRDH-TV-OS-testing.apk",
+    "sha256": "4e0e449b41b9995ec7a23941f794e7bd6c79310ebca32a0827d4495b0342ccf1",
+    "bytes": 17722606,
+    "version": "1.0.0",
+    "minimum": "Android 8.0 / API 26+"
+  },
+  {
+    "name": "SAVRDH Mobile Remote",
+    "description": "Android phone remote with navigation, touchpad, Home, Back and volume controls.",
+    "url": "/downloads/SAVRDH-Mobile-Remote-testing.apk",
+    "sha256": "74e84021e0cedb730973adbf21388ebd4a5d111bae49dcdefff9022c65607015",
+    "bytes": 24956,
+    "version": "1.0.0",
+    "minimum": "Android 8.0 / API 26+"
+  }
+]

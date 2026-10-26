@@ -23,6 +23,7 @@ The original repository database foundation is preserved in `supabase/migrations
 
 ## Modules and storage
 
+- App & OS Updates: bundled verified TV/phone testing APK downloads, SHA-256 checksums, previews and setup links at `/modules/updates`, followed by build and release controls.
 - Dashboard: counts from saved operations; no seeded/fake customer metrics.
 - Families / child profiles: validated family/profile records.
 - Plans: INR prices, subscription duration and maximum TV devices.
