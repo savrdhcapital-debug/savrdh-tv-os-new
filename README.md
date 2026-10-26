@@ -86,7 +86,7 @@ Host signed APKs at HTTPS `.apk` URLs and publish their SHA-256/version in App &
 
 `npm test` uses the actual operational and remote domain code against temporary files: verified-payment activation, duplicate reference protection, renewal payments, device limits, one-time enrollment, TV-approved phone pairing, command restrictions/acknowledgments, app-block rules, launcher telemetry, reversal suspension, revocation, stale-update protection, hashed tokens and audit persistence.
 
-Web TypeScript, syntax checks and Next.js production build are verified. Android APK compilation/lint and real TV/phone installation remain unverified: this Mac has no Java/SDK and GitHub Actions did not start because the account reported billing/spending-limit failure. Signed artifacts, HTTPS hosting with durable storage, backups, physical-device testing and a production security review are required before paid customer rollout.
+Web TypeScript, domain tests, syntax checks and Next.js production build are verified. Android TV and mobile remote debug/release APK compilation and release lint passed in the new repository on 2026-10-26 (Actions run 40257272841). Debug APKs use a testing key; release APKs remain unsigned until production signing secrets are configured. Real TV/phone installation is still unverified. HTTPS hosting with durable storage, production signing, backups, physical-device testing and a production security review are required before paid customer rollout.
 
 
 ## Unified Appearance Studio

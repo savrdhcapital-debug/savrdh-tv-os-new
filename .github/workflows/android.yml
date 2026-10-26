@@ -59,6 +59,10 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle --no-daemon :app:assembleDebug :app:assembleRelease :app:lintRelease :remote:assembleDebug :remote:assembleRelease :remote:lintRelease
+      - name: Verify testing APK signatures
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/app/build/outputs/apk/debug/app-debug.apk > APK-SIGNATURES.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android/remote/build/outputs/apk/debug/remote-debug.apk >> APK-SIGNATURES.txt
       - name: Generate APK checksums
         run: find android/app/build/outputs/apk android/remote/build/outputs/apk -name '*.apk' -exec sha256sum {} \; > APK-SHA256.txt
       - uses: actions/upload-artifact@v4
@@ -70,3 +74,4 @@ jobs:
             android/app/build/reports/lint-results-release.html
             android/remote/build/reports/lint-results-release.html
             APK-SHA256.txt
+            APK-SIGNATURES.txt
