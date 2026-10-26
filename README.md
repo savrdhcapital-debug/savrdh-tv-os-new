@@ -19,6 +19,8 @@ Open http://localhost:3000/modules/dashboard and use your existing active Supaba
 
 The old **TV Launcher Studio** module and its CSS have been removed. Its old URL redirects to `/modules/tv-studio`, the new **TV Experience Studio**. There is one studio in navigation. Originals were backed up externally before replacement.
 
+The original repository database foundation is preserved in `supabase/migrations/`. It has not been applied or synchronized automatically; review it before use against an existing project.
+
 ## Modules and storage
 
 - Dashboard: counts from saved operations; no seeded/fake customer metrics.
