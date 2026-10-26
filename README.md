@@ -1,5 +1,7 @@
 # SAVRDH TV OS — Local Super Admin + Android apps
 
+Repository: https://github.com/savrdhcapital-debug/savrdh-tv-os-new
+
 This folder is the selected v1.1.0 PR2 local application. It includes the new TV Experience Studio, manual subscription operations, Android TV launcher source, Android phone remote source and first-install wizard.
 
 ## Run locally

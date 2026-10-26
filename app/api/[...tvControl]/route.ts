@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, context: Context) {
     }
     if (!validVersion(input)) return reply({error:'Valid semantic version and Android version code required'},400);
     if (!process.env.GITHUB_TOKEN) return reply({error:'Set server-only GITHUB_TOKEN to enable APK builds'},503);
-    const repo = process.env.GITHUB_REPOSITORY || 'savrdhtechnology-cloud/SAVRDH-TV-OS';
+    const repo = process.env.GITHUB_REPOSITORY || 'savrdhcapital-debug/savrdh-tv-os-new';
     const response = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/android.yml/dispatches`, {method:'POST',
       headers:{Authorization:`Bearer ${process.env.GITHUB_TOKEN}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},
       body:JSON.stringify({ref:process.env.GITHUB_REF||'main',inputs:{version_name:input.versionName,version_code:String(input.versionCode),config_url:process.env.TV_CONTROL_PUBLIC_URL||''}}),signal:AbortSignal.timeout(15000)});
